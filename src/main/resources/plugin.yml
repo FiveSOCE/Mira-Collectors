@@ -1,0 +1,12 @@
+name: MiraCollectors
+version: 0.1.0
+main: gg.mira.collectors.MiraCollectorsPlugin
+api-version: '1.21'
+author: FiveSOCE
+softdepend: [Vault, MiraShop, MiraFactions]
+commands:
+  collector:
+    description: Manage collectors
+permissions:
+  miracollectors.use: {default: true}
+  miracollectors.admin: {default: op}
