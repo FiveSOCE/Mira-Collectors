@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.*;
 
 public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
+    private static final String PREFIX = "&5&lMira &8>> &r";
     private NamespacedKey itemKey, ownerKey, levelKey, modeKey;
     private final Map<String, CollectorData> collectors = new HashMap<>();
     private File file;
@@ -43,44 +44,44 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
 
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length >= 1 && args[0].equalsIgnoreCase("give")) {
-            if (!sender.hasPermission("miracollectors.admin")) { sender.sendMessage("§cNo permission."); return true; }
-            if (args.length < 2) { sender.sendMessage("§cUsage: /collector give <player>"); return true; }
-            Player target = Bukkit.getPlayerExact(args[1]); if (target == null) { sender.sendMessage("§cPlayer not online."); return true; }
-            target.getInventory().addItem(createCollectorItem()); sender.sendMessage("§aCollector given."); return true;
+            if (!sender.hasPermission("miracollectors.admin")) { msg(sender, "&cNo permission."); return true; }
+            if (args.length < 2) { msg(sender, "&cUsage: /collector give <player>"); return true; }
+            Player target = Bukkit.getPlayerExact(args[1]); if (target == null) { msg(sender, "&cPlayer not online."); return true; }
+            target.getInventory().addItem(createCollectorItem()); msg(sender, "&aCollector given."); return true;
         }
-        if (!(sender instanceof Player player)) { sender.sendMessage("§cPlayers only."); return true; }
+        if (!(sender instanceof Player player)) { msg(sender, "&cPlayers only."); return true; }
         Block block = player.getTargetBlockExact(6);
         if (block == null || !(block.getState() instanceof Barrel barrel) || !barrel.getPersistentDataContainer().has(ownerKey, PersistentDataType.STRING)) {
-            player.sendMessage("§cLook at a MiraCollector within 6 blocks."); return true;
+            msg(player, "&cLook at a MiraCollector within 6 blocks."); return true;
         }
         UUID owner = UUID.fromString(barrel.getPersistentDataContainer().get(ownerKey, PersistentDataType.STRING));
-        if (!owner.equals(player.getUniqueId()) && !player.hasPermission("miracollectors.admin")) { player.sendMessage("§cThat collector is not yours."); return true; }
+        if (!owner.equals(player.getUniqueId()) && !player.hasPermission("miracollectors.admin")) { msg(player, "&cThat collector is not yours."); return true; }
         if (args.length == 0 || args[0].equalsIgnoreCase("info")) {
             int level = barrel.getPersistentDataContainer().getOrDefault(levelKey, PersistentDataType.INTEGER, 1);
             String mode = barrel.getPersistentDataContainer().getOrDefault(modeKey, PersistentDataType.STRING, "STORE");
-            player.sendMessage("§6Collector §7Level §f" + level + " §7Radius §f" + radius(level) + " §7Mode §f" + mode);
+            msg(player, "&6Collector &7Level &f" + level + " &7Radius &f" + radius(level) + " &7Mode &f" + mode);
             return true;
         }
         if (args[0].equalsIgnoreCase("mode")) {
-            if (args.length < 2 || (!args[1].equalsIgnoreCase("store") && !args[1].equalsIgnoreCase("sell"))) { player.sendMessage("§cUsage: /collector mode <store|sell>"); return true; }
+            if (args.length < 2 || (!args[1].equalsIgnoreCase("store") && !args[1].equalsIgnoreCase("sell"))) { msg(player, "&cUsage: /collector mode <store|sell>"); return true; }
             String mode = args[1].toUpperCase(Locale.ROOT);
-            if (mode.equals("SELL") && (economy == null || Bukkit.getPluginManager().getPlugin("MiraShop") == null)) { player.sendMessage("§cSELL mode requires Vault and MiraShop."); return true; }
+            if (mode.equals("SELL") && (economy == null || Bukkit.getPluginManager().getPlugin("MiraShop") == null)) { msg(player, "&cSELL mode requires Vault and MiraShop."); return true; }
             barrel.getPersistentDataContainer().set(modeKey, PersistentDataType.STRING, mode); barrel.update(true);
-            updateRegistry(block, barrel); player.sendMessage("§aCollector mode set to " + mode + "."); return true;
+            updateRegistry(block, barrel); msg(player, "&aCollector mode set to " + mode + "."); return true;
         }
         if (args[0].equalsIgnoreCase("upgrade")) {
             int level = barrel.getPersistentDataContainer().getOrDefault(levelKey, PersistentDataType.INTEGER, 1);
-            if (level >= 5) { player.sendMessage("§eCollector is already max level."); return true; }
+            if (level >= 5) { msg(player, "&eCollector is already max level."); return true; }
             int cost = level * 8;
             if (!player.hasPermission("miracollectors.admin")) {
                 ItemStack price = new ItemStack(Material.DIAMOND, cost);
-                if (!player.getInventory().containsAtLeast(price, cost)) { player.sendMessage("§cUpgrade requires " + cost + " diamonds."); return true; }
+                if (!player.getInventory().containsAtLeast(price, cost)) { msg(player, "&cUpgrade requires " + cost + " diamonds."); return true; }
                 player.getInventory().removeItem(price);
             }
             level++; barrel.getPersistentDataContainer().set(levelKey, PersistentDataType.INTEGER, level); barrel.update(true);
-            updateRegistry(block, barrel); player.sendMessage("§aCollector upgraded to level " + level + " (radius " + radius(level) + ")."); return true;
+            updateRegistry(block, barrel); msg(player, "&aCollector upgraded to level " + level + " (radius " + radius(level) + ")."); return true;
         }
-        player.sendMessage("§7/collector info, mode <store|sell>, upgrade"); return true;
+        msg(player, "&7/collector info, mode <store|sell>, upgrade"); return true;
     }
 
     private ItemStack createCollectorItem() {
@@ -104,7 +105,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         if (!(event.getBlock().getState() instanceof Barrel barrel) || !barrel.getPersistentDataContainer().has(ownerKey, PersistentDataType.STRING)) return;
         String owner = barrel.getPersistentDataContainer().get(ownerKey, PersistentDataType.STRING);
         if (!event.getPlayer().getUniqueId().toString().equals(owner) && !event.getPlayer().hasPermission("miracollectors.admin")) {
-            event.setCancelled(true); event.getPlayer().sendMessage("§cThat collector is not yours."); return;
+            event.setCancelled(true); msg(event.getPlayer(), "&cThat collector is not yours."); return;
         }
         collectors.remove(key(event.getBlock().getLocation())); save();
         event.setDropItems(false); event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation(), createCollectorItem());
@@ -117,8 +118,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
             int r = radius(data.level);
             for (Item entity : world.getNearbyEntitiesByType(Item.class, block.getLocation().add(0.5,0.5,0.5), r, r, r)) {
                 if (!entity.isValid() || entity.getPickupDelay() > 20) continue;
-                if (data.mode.equals("SELL")) sell(entity, data.owner);
-                else store(entity, barrel);
+                if (data.mode.equals("SELL")) sell(entity, data.owner); else store(entity, barrel);
             }
         }
     }
@@ -153,6 +153,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         return generic;
     }
 
+    private void msg(CommandSender sender, String raw) { sender.sendMessage(ChatColor.translateAlternateColorCodes('&', PREFIX + raw)); }
     private static int radius(int level) { return 4 + Math.max(1, Math.min(5, level)) * 2; }
     private void updateRegistry(Block block, Barrel barrel) {
         collectors.put(key(block.getLocation()), new CollectorData(block.getWorld().getName(), block.getX(), block.getY(), block.getZ(),
