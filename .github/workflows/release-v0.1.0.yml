@@ -1,0 +1,30 @@
+name: Release v0.1.0
+on:
+  push:
+    paths:
+      - '.github/workflows/release-v0.1.0.yml'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tested source
+        uses: actions/checkout@v4
+        with:
+          ref: 3bee1821e086157dcab9f0e6545eaf4905145c73
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build
+        run: gradle build
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          name: MiraCollectors v0.1.0
+          target_commitish: 3bee1821e086157dcab9f0e6545eaf4905145c73
+          body: Initial MiraCollectors release with managed collector barrels, persistent ownership, upgradeable collection radius, store/sell modes, Vault payouts and MiraShop sale-aware pricing.
+          files: build/libs/MiraCollectors-0.1.0.jar
