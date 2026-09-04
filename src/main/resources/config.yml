@@ -1,0 +1,5 @@
+collector:
+  tick-interval-ticks: 100
+
+audit:
+  successful-sales: false
