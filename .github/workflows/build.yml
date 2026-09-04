@@ -1,9 +1,15 @@
 name: Build
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,9 +20,26 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Build
-        run: gradle build
-      - uses: actions/upload-artifact@v4
         with:
-          name: MiraCollectors-0.1.0
-          path: build/libs/MiraCollectors-0.1.0.jar
+          gradle-version: '8.10'
+      - name: Build
+        run: gradle clean build --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: MiraCollectors-0.1.1
+          path: build/libs/MiraCollectors-0.1.1.jar
+          if-no-files-found: error
+
+      - name: Publish v0.1.1 release if missing
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view v0.1.1 >/dev/null 2>&1; then
+            gh release create v0.1.1 \
+              build/libs/MiraCollectors-0.1.1.jar \
+              --target "${{ github.sha }}" \
+              --title "MiraCollectors v0.1.1" \
+              --notes "Adds protected collector inventories, preserved level/mode/UUID across break/place, transaction-safe Vault selling, strict custom-item safety, blast/piston/hopper protection, Core audit/API integration and typed sale events."
+          fi
