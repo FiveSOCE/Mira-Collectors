@@ -1,40 +1,91 @@
 # MiraCollectors
 
-MiraCollectors provides managed collection barrels for the Mira Paper server suite. Collector blocks gather nearby dropped items and can either store those items physically or sell eligible drops automatically using MiraShop pricing.
+MiraCollectors provides protected persistent collection barrels for the Mira Paper server suite. Collectors gather nearby dropped items into physical storage or automatically sell safe eligible drops using current MiraShop pricing.
 
 ## Download
 
-[**Download MiraCollectors v0.1.0**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.0/MiraCollectors-0.1.0.jar)
+[**Download MiraCollectors v0.1.1**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.1/MiraCollectors-0.1.1.jar)
+
+[View All Releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
 
 ## Requirements / Dependencies
 
 - Paper 1.21.11
 - Java 21
-- Vault optional for economy payouts
-- A Vault-compatible economy provider when using SELL mode
-- MiraShop optional/recommended for live sell pricing and analytics
-- MiraFactions optional integration
+- MiraCore 0.2.0 or newer
+- Vault
+- A Vault-compatible economy provider for SELL mode
+- MiraShop for SELL mode
 
-## How MiraCollectors Works
+STORE mode remains available if MiraShop is absent.
 
-A MiraCollector is a special managed barrel with persistent ownership and location data. Collectors have five upgrade levels that increase their collection radius. In `STORE` mode, eligible nearby item drops are moved into the collector's physical inventory. In `SELL` mode, eligible drops are valued using current MiraShop sell prices, including temporary sales, and the proceeds are paid to the collector owner through Vault.
+## Collector Identity and Persistence
 
-Custom item/template matches are checked before generic material prices. Collector management and breaking are ownership-protected so other players cannot freely reconfigure or remove someone else's collector.
+Every collector has a persistent UUID, owner, level and mode. Breaking a collector now preserves its UUID, upgrade level and mode on the dropped collector item. Replacing it assigns ownership to the new placer while keeping the collector's upgraded state.
+
+Older v0.1.0 collectors without a UUID are migrated automatically when loaded/touched.
+
+## STORE Mode
+
+STORE collectors pull nearby dropped items into their barrel inventory. Owner protection prevents other players from opening the collector. Hopper insertion/extraction is blocked so external automation cannot bypass ownership or silently drain stored items.
+
+When an owner/admin breaks a collector, its stored contents are safely dropped alongside the collector item instead of being discarded.
+
+## SELL Mode
+
+SELL mode uses current MiraShop sell pricing, including active sale events.
+
+The sale order is transaction-safe:
+
+1. Match the dropped item against current MiraShop pricing.
+2. Reject modified generic items unless they match an explicit MiraShop custom template.
+3. Ask Vault to deposit the complete payout to the collector owner.
+4. Only remove the dropped entity after Vault reports transaction success.
+5. Record the successful sale into MiraShop economy analytics.
+
+If Vault rejects the payout, the dropped item remains in the world.
+
+## Physical Protection
+
+MiraCollectors protects managed collector barrels against:
+
+- non-owner interaction/breaking
+- hopper inventory movement
+- piston movement
+- block/entity explosions
+- burning
+
+Normal server protection plugins still get first say because collector listeners respect already-cancelled events.
 
 ## Commands
 
-Look directly at a placed MiraCollector when using management commands.
+Look directly at a placed MiraCollector for management commands.
 
 | Command | Permission | What it does |
 | --- | --- | --- |
-| `/collector give <player>` | `miracollectors.admin` | Gives a MiraCollector item to a player. |
-| `/collector info` | `miracollectors.use` | Shows information about the collector you are looking at. |
-| `/collector mode <store|sell>` | `miracollectors.use` | Changes the targeted collector between physical storage and automatic selling. |
-| `/collector upgrade` | `miracollectors.use` | Upgrades the targeted collector when upgrade requirements are met. |
+| `/collector give <player>` | `miracollectors.admin` | Gives a new level-1 STORE collector. |
+| `/collector info` | `miracollectors.use` | Shows collector ID, level, radius, mode and storage usage. |
+| `/collector mode <store|sell>` | `miracollectors.use` | Changes the targeted owned collector mode. |
+| `/collector upgrade` | `miracollectors.use` | Upgrades the collector up to level 5. |
 
-## Permissions
+Upgrade cost remains 8, 16, 24 and 32 diamonds for levels 2 through 5.
 
-| Permission | Default | What it does |
-| --- | --- | --- |
-| `miracollectors.use` | Everyone | Allows normal owned-collector management. |
-| `miracollectors.admin` | OP | Allows administrative collector actions such as giving collectors. |
+## API / Events
+
+`CollectorsApi` is registered through Bukkit ServicesManager and MiraCore. It exposes collector lookup by location/owner, current snapshots, count and safe collector-item creation.
+
+A typed `CollectorSellEvent` fires after a successful automated sale.
+
+Administrative grants and collector place/break/mode/upgrade changes are written to MiraCore audit history. High-frequency successful sale auditing is configurable and disabled by default to avoid flooding the audit log.
+
+## Configuration
+
+`config.yml` controls the collector tick interval and optional successful-sale auditing.
+
+## Building
+
+```bash
+gradle clean build
+```
+
+The output JAR is created in `build/libs/`.
