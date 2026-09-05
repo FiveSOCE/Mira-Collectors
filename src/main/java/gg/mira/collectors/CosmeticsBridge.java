@@ -23,4 +23,14 @@ final class CosmeticsBridge {
             } catch (ReflectiveOperationException ignoredToo) { }
         } catch (ReflectiveOperationException ignored) { }
     }
+
+    static void playNearby(Location location, String eventId, double radius) {
+        if (location == null || location.getWorld() == null || eventId == null) return;
+        double radiusSquared = Math.max(0D, radius) * Math.max(0D, radius);
+        for (Player viewer : location.getWorld().getPlayers()) {
+            if (viewer.getLocation().distanceSquared(location) <= radiusSquared) {
+                play(viewer, eventId, location);
+            }
+        }
+    }
 }
