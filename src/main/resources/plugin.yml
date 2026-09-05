@@ -1,11 +1,11 @@
 name: MiraCollectors
-version: 0.1.1
+version: 0.1.2
 main: gg.mira.collectors.MiraCollectorsPlugin
 api-version: '1.21'
 author: FiveSOCE
 description: Protected persistent item collectors with STORE and transactional MiraShop SELL modes.
 depend: [MiraCore, Vault]
-softdepend: [MiraShop]
+softdepend: [MiraShop, MiraCosmetics]
 commands:
   collector:
     description: Manage collectors
