@@ -27,19 +27,19 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: MiraCollectors-0.1.1
-          path: build/libs/MiraCollectors-0.1.1.jar
+          name: MiraCollectors-0.1.2
+          path: build/libs/MiraCollectors-0.1.2.jar
           if-no-files-found: error
 
-      - name: Publish v0.1.1 release if missing
+      - name: Publish v0.1.2 release if missing
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view v0.1.1 >/dev/null 2>&1; then
-            gh release create v0.1.1 \
-              build/libs/MiraCollectors-0.1.1.jar \
+          if ! gh release view v0.1.2 >/dev/null 2>&1; then
+            gh release create v0.1.2 \
+              build/libs/MiraCollectors-0.1.2.jar \
               --target "${{ github.sha }}" \
-              --title "MiraCollectors v0.1.1" \
-              --notes "Adds protected collector inventories, preserved level/mode/UUID across break/place, transaction-safe Vault selling, strict custom-item safety, blast/piston/hopper protection, Core audit/API integration and typed sale events."
+              --title "MiraCollectors v0.1.2" \
+              --notes "Adds optional MiraCosmetics audio for successful collector auto-sales, throttled by the Cosmetics audio engine to avoid spam."
           fi
