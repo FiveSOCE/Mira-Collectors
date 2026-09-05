@@ -3,3 +3,7 @@ collector:
 
 audit:
   successful-sales: false
+
+filters:
+  # Empty filter means collect everything. Owners can whitelist up to this many materials.
+  max-materials: 9
