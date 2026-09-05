@@ -4,7 +4,7 @@ MiraCollectors provides protected persistent collection barrels for the Mira Pap
 
 ## Download
 
-[**Download MiraCollectors v0.1.3**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.3/MiraCollectors-0.1.3.jar)
+[**Download MiraCollectors v0.1.4**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.4/MiraCollectors-0.1.4.jar)
 
 [View All Releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
 
@@ -107,3 +107,10 @@ Collectors now support persistent owner-controlled material whitelists.
 - filtering is applied before STORE or SELL processing
 - the whitelist persists when the collector is broken and replaced
 - `filters.max-materials` controls the configurable whitelist size
+
+
+## Collector Audio Audience (0.1.4)
+
+Successful Collector SELL audio is now environmental rather than owner-only.
+
+Every opted-in player within **32 blocks (two chunks)** of the Collector sale location hears the sound. MiraCosmetics' existing per-player `collector_sale` cooldown still prevents rapid farm spam.
