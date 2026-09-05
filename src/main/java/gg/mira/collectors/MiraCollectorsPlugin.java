@@ -20,9 +20,12 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -43,6 +46,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
     private NamespacedKey ownerKey;
     private NamespacedKey levelKey;
     private NamespacedKey modeKey;
+    private NamespacedKey filterKey;
 
     private final Map<String, CollectorData> collectors = new LinkedHashMap<>();
     private File file;
@@ -62,6 +66,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         ownerKey = new NamespacedKey(this, "owner");
         levelKey = new NamespacedKey(this, "level");
         modeKey = new NamespacedKey(this, "mode");
+        filterKey = new NamespacedKey(this, "filters");
 
         file = new File(getDataFolder(), "collectors.yml");
         load();
@@ -192,6 +197,9 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
                         Map.of("from", data.mode().name(), "to", mode.name()));
                 msg(player, "&aCollector mode set to &f" + mode + "&a.");
             }
+            case "filter", "filters" -> {
+                openFilterGui(player, barrel, data);
+            }
             case "upgrade" -> {
                 int level = data.level();
                 if (level >= 5) {
@@ -223,7 +231,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
                 msg(player, "&aCollector upgraded to level &f" + next
                         + " &a(radius &f" + radius(next) + "&a).");
             }
-            default -> msg(player, "&7/collector <info|mode <store|sell>|upgrade>");
+            default -> msg(player, "&7/collector <info|mode <store|sell>|filter|upgrade>");
         }
         return true;
     }
@@ -232,7 +240,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                       @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            List<String> values = new ArrayList<>(List.of("info", "mode", "upgrade"));
+            List<String> values = new ArrayList<>(List.of("info", "mode", "filter", "upgrade"));
             if (sender.hasPermission("miracollectors.admin")) values.add("give");
             return complete(args[0], values);
         }
@@ -246,9 +254,14 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
     }
 
     private ItemStack createCollectorItem(int level, Mode mode, UUID collectorId) {
+        return createCollectorItem(level, mode, collectorId, Set.of());
+    }
+
+    private ItemStack createCollectorItem(int level, Mode mode, UUID collectorId, Set<Material> filters) {
         int safeLevel = clampLevel(level);
         Mode safeMode = mode == null ? Mode.STORE : mode;
         UUID safeId = collectorId == null ? UUID.randomUUID() : collectorId;
+        Set<Material> safeFilters = filters == null ? Set.of() : Set.copyOf(filters);
 
         ItemStack item = new ItemStack(Material.BARREL);
         ItemMeta meta = item.getItemMeta();
@@ -258,10 +271,12 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         pdc.set(collectorIdKey, PersistentDataType.STRING, safeId.toString());
         pdc.set(levelKey, PersistentDataType.INTEGER, safeLevel);
         pdc.set(modeKey, PersistentDataType.STRING, safeMode.name());
+        pdc.set(filterKey, PersistentDataType.STRING, encodeFilters(safeFilters));
         meta.lore(List.of(
                 Component.text("Collects nearby dropped items."),
                 Component.text("Level: " + safeLevel + " | Radius: " + radius(safeLevel)),
                 Component.text("Mode: " + safeMode),
+                Component.text("Filter: " + (safeFilters.isEmpty() ? "All materials" : safeFilters.size() + " material(s)")),
                 Component.text("ID: " + shortId(safeId))
         ));
         item.setItemMeta(meta);
@@ -279,12 +294,14 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         if (id == null) id = UUID.randomUUID();
         int level = clampLevel(itemData.getOrDefault(levelKey, PersistentDataType.INTEGER, 1));
         Mode mode = parseMode(itemData.get(modeKey, PersistentDataType.STRING));
+        Set<Material> filters = decodeFilters(itemData.get(filterKey, PersistentDataType.STRING));
 
         PersistentDataContainer blockData = barrel.getPersistentDataContainer();
         blockData.set(collectorIdKey, PersistentDataType.STRING, id.toString());
         blockData.set(ownerKey, PersistentDataType.STRING, event.getPlayer().getUniqueId().toString());
         blockData.set(levelKey, PersistentDataType.INTEGER, level);
         blockData.set(modeKey, PersistentDataType.STRING, mode.name());
+        blockData.set(filterKey, PersistentDataType.STRING, encodeFilters(filters));
         barrel.update(true);
 
         updateRegistry(event.getBlockPlaced(), barrel);
@@ -321,7 +338,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         event.setDropItems(false);
         event.getBlock().getWorld().dropItemNaturally(
                 event.getBlock().getLocation(),
-                createCollectorItem(data.level(), data.mode(), data.id()));
+                createCollectorItem(data.level(), data.mode(), data.id(), data.filters()));
         for (ItemStack stack : stored) {
             if (stack != null && !stack.getType().isAir()) {
                 event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation(), stack);
@@ -418,6 +435,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
             Location center = block.getLocation().add(0.5, 0.5, 0.5);
             for (Item entity : world.getNearbyEntitiesByType(Item.class, center, r, r, r)) {
                 if (!entity.isValid() || entity.getPickupDelay() > 20) continue;
+                if (!accepts(data, entity.getItemStack())) continue;
                 if (data.mode() == Mode.SELL) sell(entity, data, shopSnapshot);
                 else store(entity, barrel);
             }
@@ -494,6 +512,141 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         getLogger().warning(message);
     }
 
+    private boolean accepts(CollectorData data, ItemStack stack) {
+        return stack != null && !stack.getType().isAir()
+                && (data.filters().isEmpty() || data.filters().contains(stack.getType()));
+    }
+
+    private void openFilterGui(Player player, Barrel barrel, CollectorData data) {
+        Inventory inventory = Bukkit.createInventory(
+                new FilterHolder(data.id(), key(barrel.getLocation())), 27, "Collector Filters");
+        ItemStack filler = named(Material.GRAY_STAINED_GLASS_PANE, " ");
+        for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler.clone());
+
+        int index = 0;
+        for (Material material : data.filters().stream().sorted(Comparator.comparing(Material::name)).toList()) {
+            if (index >= 9) break;
+            ItemStack ghost = new ItemStack(material);
+            ItemMeta meta = ghost.getItemMeta();
+            meta.customName(Component.text(material.name()));
+            meta.lore(List.of(Component.text("Click to remove this filter.")));
+            ghost.setItemMeta(meta);
+            inventory.setItem(9 + index, ghost);
+            index++;
+        }
+
+        inventory.setItem(4, named(Material.HOPPER,
+                data.filters().isEmpty() ? "Filter: ALL MATERIALS" : "Filter: " + data.filters().size() + " material(s)"));
+        inventory.setItem(22, named(Material.BARRIER, "Clear Filter"));
+        inventory.setItem(26, named(Material.BOOK, "Click an item in your inventory to add its material"));
+        player.openInventory(inventory);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onFilterClick(InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof FilterHolder holder)) return;
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+
+        CollectorData data = collectors.get(holder.locationKey());
+        if (data == null || !data.id().equals(holder.collectorId())) {
+            player.closeInventory();
+            return;
+        }
+        if (!data.owner().equals(player.getUniqueId()) && !player.hasPermission("miracollectors.admin")) {
+            player.closeInventory();
+            return;
+        }
+
+        Barrel barrel = barrel(data);
+        if (barrel == null) {
+            player.closeInventory();
+            return;
+        }
+
+        int raw = event.getRawSlot();
+        Set<Material> next = new LinkedHashSet<>(data.filters());
+
+        if (raw >= 9 && raw <= 17) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType().isAir() || clicked.getType() == Material.GRAY_STAINED_GLASS_PANE) return;
+            next.remove(clicked.getType());
+        } else if (raw == 22) {
+            next.clear();
+        } else if (raw >= event.getView().getTopInventory().getSize()) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType().isAir()) return;
+            int maximum = Math.max(1, Math.min(9, getConfig().getInt("filters.max-materials", 9)));
+            if (!next.contains(clicked.getType()) && next.size() >= maximum) {
+                msg(player, "&eThat collector already has the maximum of &f" + maximum + " &efilter materials.");
+                return;
+            }
+            next.add(clicked.getType());
+        } else {
+            return;
+        }
+
+        setFilters(barrel, next);
+        CollectorData updated = readCollector(barrel, data.id());
+        if (updated != null) {
+            collectors.put(holder.locationKey(), updated);
+            save();
+            core.audit().record("MiraCollectors", "COLLECTOR_FILTER_CHANGED",
+                    player.getUniqueId(), player.getName(), data.id().toString(), "Collector material filter changed",
+                    Map.of("materials", String.join(",", updated.filters().stream().map(Material::name).sorted().toList())));
+            openFilterGui(player, barrel, updated);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onFilterDrag(InventoryDragEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof FilterHolder) event.setCancelled(true);
+    }
+
+    private Barrel barrel(CollectorData data) {
+        World world = Bukkit.getWorld(data.world());
+        if (world == null || !world.isChunkLoaded(data.x() >> 4, data.z() >> 4)) return null;
+        Block block = world.getBlockAt(data.x(), data.y(), data.z());
+        return block.getState() instanceof Barrel barrel && isCollectorBarrel(barrel) ? barrel : null;
+    }
+
+    private void setFilters(Barrel barrel, Set<Material> filters) {
+        barrel.getPersistentDataContainer().set(filterKey, PersistentDataType.STRING, encodeFilters(filters));
+        barrel.update(true);
+        updateRegistry(barrel.getBlock(), barrel);
+    }
+
+    private ItemStack named(Material material, String name) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        meta.customName(Component.text(name));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private String encodeFilters(Set<Material> filters) {
+        if (filters == null || filters.isEmpty()) return "";
+        return String.join(",", filters.stream().map(Material::name).sorted().toList());
+    }
+
+    private Set<Material> decodeFilters(String raw) {
+        if (raw == null || raw.isBlank()) return Set.of();
+        return parseMaterialSet(Arrays.asList(raw.split(",")));
+    }
+
+    private Set<Material> parseMaterialSet(Collection<String> names) {
+        LinkedHashSet<Material> materials = new LinkedHashSet<>();
+        if (names == null) return Set.of();
+        for (String raw : names) {
+            if (raw == null || raw.isBlank()) continue;
+            Material material = Material.matchMaterial(raw.trim());
+            if (material != null && !material.isAir()) materials.add(material);
+        }
+        int maximum = Math.max(1, Math.min(9, getConfig().getInt("filters.max-materials", 9)));
+        return materials.stream().limit(maximum).collect(
+                LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+    }
+
     private boolean sellModeAvailable() {
         if (economy == null) {
             var registration = getServer().getServicesManager().getRegistration(Economy.class);
@@ -544,11 +697,12 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
 
         int level = clampLevel(pdc.getOrDefault(levelKey, PersistentDataType.INTEGER, 1));
         Mode mode = parseMode(pdc.get(modeKey, PersistentDataType.STRING));
+        Set<Material> filters = decodeFilters(pdc.get(filterKey, PersistentDataType.STRING));
         Location location = barrel.getLocation();
 
         return new CollectorData(id, location.getWorld().getName(),
                 location.getBlockX(), location.getBlockY(), location.getBlockZ(),
-                owner, level, mode);
+                owner, level, mode, filters);
     }
 
     private UUID ownerOf(Barrel barrel) {
@@ -587,7 +741,8 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
                         root.getInt(base + "z"),
                         owner,
                         clampLevel(root.getInt(base + "level", 1)),
-                        parseMode(root.getString(base + "mode", "STORE")));
+                        parseMode(root.getString(base + "mode", "STORE")),
+                        parseMaterialSet(root.getStringList(base + "filters")));
                 collectors.put(locationKey, data);
             } catch (RuntimeException ignored) {
             }
@@ -607,6 +762,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
             yaml.set(base + "owner", data.owner().toString());
             yaml.set(base + "level", data.level());
             yaml.set(base + "mode", data.mode().name());
+            yaml.set(base + "filters", data.filters().stream().map(Material::name).sorted().toList());
         }
         try {
             yaml.save(file);
@@ -691,6 +847,10 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         return Map.copyOf(values);
     }
 
+    private record FilterHolder(UUID collectorId, String locationKey) implements InventoryHolder {
+        @Override public Inventory getInventory() { return null; }
+    }
+
     public enum Mode { STORE, SELL }
 
     public record CollectorSnapshot(UUID id, UUID owner, String world, int x, int y, int z,
@@ -739,7 +899,10 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
     }
 
     private record CollectorData(UUID id, String world, int x, int y, int z,
-                                 UUID owner, int level, Mode mode) {
+                                 UUID owner, int level, Mode mode, Set<Material> filters) {
+        private CollectorData {
+            filters = filters == null ? Set.of() : Set.copyOf(filters);
+        }
         Location location() {
             World resolved = Bukkit.getWorld(world);
             return resolved == null ? new Location(Bukkit.getWorlds().getFirst(), x, y, z)
