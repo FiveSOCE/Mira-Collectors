@@ -4,7 +4,7 @@ MiraCollectors provides protected persistent collection barrels for the Mira Pap
 
 ## Download
 
-[**Download MiraCollectors v0.1.2**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.2/MiraCollectors-0.1.2.jar)
+[**Download MiraCollectors v0.1.3**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.3/MiraCollectors-0.1.3.jar)
 
 [View All Releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
 
@@ -67,6 +67,7 @@ Look directly at a placed MiraCollector for management commands.
 | `/collector give <player>` | `miracollectors.admin` | Gives a new level-1 STORE collector. |
 | `/collector info` | `miracollectors.use` | Shows collector ID, level, radius, mode and storage usage. |
 | `/collector mode <store|sell>` | `miracollectors.use` | Changes the targeted owned collector mode. |
+| `/collector filter` | `miracollectors.use` | Opens the material whitelist filter GUI for the targeted owned collector. |
 | `/collector upgrade` | `miracollectors.use` | Upgrades the collector up to level 5. |
 
 Upgrade cost remains 8, 16, 24 and 32 diamonds for levels 2 through 5.
@@ -81,7 +82,7 @@ Administrative grants and collector place/break/mode/upgrade changes are written
 
 ## Configuration
 
-`config.yml` controls the collector tick interval and optional successful-sale auditing.
+`config.yml` controls the collector tick interval, maximum filter-material count and optional successful-sale auditing.
 
 ## Building
 
@@ -94,3 +95,15 @@ The output JAR is created in `build/libs/`.
 ## MiraCosmetics Audio Integration (0.1.2)
 
 MiraCosmetics audio hooks cover successful collector auto-sales. MiraCosmetics applies a per-player cooldown to prevent rapid collector sales from becoming sound spam.
+
+## Material Filters (0.1.3)
+
+Collectors now support persistent owner-controlled material whitelists.
+
+- an empty filter preserves legacy behaviour and collects **all** eligible materials
+- `/collector filter` opens a ghost-item management GUI
+- clicking an inventory item adds that material type without consuming the item
+- clicking a displayed ghost filter removes that material
+- filtering is applied before STORE or SELL processing
+- the whitelist persists when the collector is broken and replaced
+- `filters.max-materials` controls the configurable whitelist size
