@@ -4,7 +4,7 @@ MiraCollectors provides protected persistent collection barrels for the Mira Pap
 
 ## Download
 
-[**Download MiraCollectors v0.1.1**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.1/MiraCollectors-0.1.1.jar)
+[**Download MiraCollectors v0.1.2**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.1.2/MiraCollectors-0.1.2.jar)
 
 [View All Releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
 
@@ -18,6 +18,7 @@ MiraCollectors provides protected persistent collection barrels for the Mira Pap
 - MiraShop for SELL mode
 
 STORE mode remains available if MiraShop is absent.
+- MiraCosmetics optional for centralized audio effects
 
 ## Collector Identity and Persistence
 
@@ -89,3 +90,7 @@ gradle clean build
 ```
 
 The output JAR is created in `build/libs/`.
+
+## MiraCosmetics Audio Integration (0.1.2)
+
+MiraCosmetics audio hooks cover successful collector auto-sales. MiraCosmetics applies a per-player cooldown to prevent rapid collector sales from becoming sound spam.
