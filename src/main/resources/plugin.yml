@@ -1,5 +1,5 @@
 name: MiraCollectors
-version: 0.1.2
+version: 0.1.3
 main: gg.mira.collectors.MiraCollectorsPlugin
 api-version: '1.21'
 author: FiveSOCE
@@ -9,7 +9,7 @@ softdepend: [MiraShop, MiraCosmetics]
 commands:
   collector:
     description: Manage collectors
-    usage: /collector <info|mode|upgrade|give>
+    usage: /collector <info|mode|filter|upgrade|give>
     permission: miracollectors.use
 permissions:
   miracollectors.use: {default: true}
