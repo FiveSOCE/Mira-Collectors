@@ -465,6 +465,8 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
 
         Bukkit.getPluginManager().callEvent(new CollectorSellEvent(
                 collector.id(), collector.owner(), collector.location(), material, amount, money));
+        Player owner = Bukkit.getPlayer(collector.owner());
+        if (owner != null) CosmeticsBridge.play(owner, "collector_sale", collector.location());
 
         if (getConfig().getBoolean("audit.successful-sales", false)) {
             core.audit().record("MiraCollectors", "COLLECTOR_SALE",
