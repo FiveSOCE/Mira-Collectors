@@ -758,6 +758,19 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         return location.getWorld().getName() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
     }
 
+    private static String prettyMaterial(Material material, long amount) {
+        String lower = material.name().toLowerCase(Locale.ROOT).replace('_', ' ');
+        StringBuilder out = new StringBuilder();
+        for (String word : lower.split(" ")) {
+            if (!out.isEmpty()) out.append(' ');
+            out.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        String name = out.toString();
+        if (amount == 1) return name;
+        if (name.endsWith("s")) return name;
+        return name + "s";
+    }
+
     private static String formatCount(long value) {
         if (value >= 1_000_000) return String.format(Locale.US, "%.1fm", value / 1_000_000D);
         if (value >= 1_000) {
@@ -793,12 +806,12 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         ItemStack create(int level, Mode mode);
     }
 
-    public record CollectorSaleResult(boolean success, long units, double payout, String message) {
+    public record CollectorSaleResult(boolean success, long units, double payout, String label, String message) {
         public static CollectorSaleResult fail(String message) {
-            return new CollectorSaleResult(false, 0L, 0D, message);
+            return new CollectorSaleResult(false, 0L, 0D, "Items", message);
         }
-        public static CollectorSaleResult success(long units, double payout) {
-            return new CollectorSaleResult(true, units, payout, "");
+        public static CollectorSaleResult success(long units, double payout, String label) {
+            return new CollectorSaleResult(true, units, payout, label == null || label.isBlank() ? "Items" : label, "");
         }
     }
 
@@ -872,7 +885,10 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
                         actor.getUniqueId(), actor.getName(), data.id().toString(), "Collector sold with sell wand",
                         Map.of("units", Long.toString(units), "payout", Double.toString(payout),
                                 "multiplier", Double.toString(multiplier)));
-                return CollectorSaleResult.success(units, payout);
+                String label = sellable.size() == 1
+                        ? prettyMaterial(sellable.get(0).stored().template().getType(), units)
+                        : "Items";
+                return CollectorSaleResult.success(units, payout, label);
             } catch (ReflectiveOperationException | RuntimeException ex) {
                 getLogger().warning("Collector sell-all failed: " + ex.getMessage());
                 return CollectorSaleResult.fail("Could not price collector contents through MiraShop.");
