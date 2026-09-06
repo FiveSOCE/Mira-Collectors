@@ -24,6 +24,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityDropItemEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -388,6 +389,47 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryMove(InventoryMoveItemEvent event) {
         if (isCollectorInventory(event.getSource()) || isCollectorInventory(event.getDestination())) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onMobDeath(EntityDeathEvent event) {
+        if (event.getEntity() instanceof Player || event.getDrops().isEmpty()) return;
+
+        Location death = event.getEntity().getLocation().clone();
+        List<ItemStack> expected = event.getDrops().stream()
+                .filter(Objects::nonNull)
+                .filter(item -> !item.getType().isAir() && item.getAmount() > 0)
+                .map(ItemStack::clone)
+                .toList();
+        if (expected.isEmpty()) return;
+
+        getServer().getScheduler().runTask(this, () -> markDeathDrops(death, expected));
+    }
+
+    private void markDeathDrops(Location death, List<ItemStack> expected) {
+        if (death.getWorld() == null) return;
+
+        List<ExpectedDrop> remaining = expected.stream()
+                .map(item -> new ExpectedDrop(item, item.getAmount()))
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+
+        for (Item dropped : death.getWorld().getNearbyEntitiesByType(Item.class, death, 2.25)) {
+            if (!dropped.isValid()) continue;
+            if (dropped.getTicksLived() > 5) continue;
+            if (dropped.getPersistentDataContainer().has(mobDropKey, PersistentDataType.BYTE)) continue;
+
+            ItemStack actual = dropped.getItemStack();
+            for (ExpectedDrop pending : remaining) {
+                if (pending.remaining() <= 0) continue;
+                ItemStack template = pending.template().clone();
+                template.setAmount(actual.getAmount());
+                if (!template.isSimilar(actual)) continue;
+
+                dropped.getPersistentDataContainer().set(mobDropKey, PersistentDataType.BYTE, (byte) 1);
+                pending.consume(actual.getAmount());
+                break;
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -931,6 +973,21 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         ItemStack template() { return template; }
         long count() { return count; }
         void count(long count) { this.count = Math.max(0L, count); }
+    }
+
+    private static final class ExpectedDrop {
+        private final ItemStack template;
+        private int remaining;
+
+        ExpectedDrop(ItemStack template, int remaining) {
+            this.template = template.clone();
+            this.template.setAmount(1);
+            this.remaining = Math.max(0, remaining);
+        }
+
+        ItemStack template() { return template; }
+        int remaining() { return remaining; }
+        void consume(int amount) { remaining = Math.max(0, remaining - Math.max(0, amount)); }
     }
 
     private record SaleEntry(StoredEntry stored, PriceEntry price) { }
