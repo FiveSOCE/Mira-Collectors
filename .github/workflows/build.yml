@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraCollectors $TAG" \
-              --notes "Adds transactional sell-all support for sell wands. MiraCollectors can now price full backend virtual-storage counts through MiraShop, apply a wand multiplier, pay the player once, remove only successfully priced stored entries, update holograms, and report per-item sale events/statistics."
+              --notes "Collector sell-all results now return a human-readable item label so SellWands can report messages like Sold 64 Diamonds for $19,200 when exactly one item type is sold, while mixed sales fall back to Items."
           fi
