@@ -17,12 +17,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
+import org.bukkit.event.entity.EntityDropItemEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -56,6 +58,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
     private NamespacedKey modeKey;
     private NamespacedKey filterKey;
     private NamespacedKey hologramKey;
+    private NamespacedKey mobDropKey;
 
     private final Map<String, CollectorData> collectors = new LinkedHashMap<>();
     private final Map<UUID, List<StoredEntry>> storage = new HashMap<>();
@@ -80,6 +83,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         modeKey = new NamespacedKey(this, "mode");
         filterKey = new NamespacedKey(this, "filters");
         hologramKey = new NamespacedKey(this, "collector_hologram");
+        mobDropKey = new NamespacedKey(this, "mob_drop");
 
         file = new File(getDataFolder(), "collectors.yml");
         load();
@@ -386,6 +390,13 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         if (isCollectorInventory(event.getSource()) || isCollectorInventory(event.getDestination())) event.setCancelled(true);
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMobDrop(EntityDropItemEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity) || event.getEntity() instanceof Player) return;
+        Item dropped = event.getItemDrop();
+        dropped.getPersistentDataContainer().set(mobDropKey, PersistentDataType.BYTE, (byte) 1);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
         if (event.getBlocks().stream().anyMatch(this::isCollectorBlock)) event.setCancelled(true);
@@ -427,6 +438,9 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
             Chunk chunk = world.getChunkAt(data.x() >> 4, data.z() >> 4);
             for (org.bukkit.entity.Entity entity : chunk.getEntities()) {
                 if (!(entity instanceof Item dropped) || !dropped.isValid()) continue;
+                Byte mobDrop = dropped.getPersistentDataContainer().get(mobDropKey, PersistentDataType.BYTE);
+                if (mobDrop == null || mobDrop != (byte) 1) continue;
+
                 ItemStack stack = dropped.getItemStack();
                 if (!current.filters().isEmpty() && !current.filters().contains(stack.getType())) continue;
 
