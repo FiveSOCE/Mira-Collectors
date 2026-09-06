@@ -466,7 +466,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
             shopBridge.recordSell(entry.rawItem(), stack.getAmount(), money);
             dropped.remove();
             Bukkit.getPluginManager().callEvent(new CollectorSellEvent(
-                    data.id(), owner, stack.getAmount(), money, data.location()));
+                    data.id(), data.owner(), data.location(), stack.getType(), stack.getAmount(), money));
         } catch (ReflectiveOperationException ex) {
             getLogger().warning("Collector SELL bridge failed: " + ex.getMessage());
         }
