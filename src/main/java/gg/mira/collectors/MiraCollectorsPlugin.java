@@ -851,23 +851,23 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
                     return CollectorSaleResult.fail("The economy rejected the collector payout.");
                 }
 
-                try {
-                    for (SaleEntry sale : sellable) {
-                        int amount = Math.toIntExact(sale.stored().count());
-                        shopBridge.recordSell(sale.price().rawItem(), amount, sale.price().unitPrice() * amount * multiplier);
-                    }
-                } catch (RuntimeException | ReflectiveOperationException ex) {
-                    economy.withdrawPlayer(actor, payout);
-                    getLogger().warning("Collector sell stats failed; payout rolled back: " + ex.getMessage());
-                    return CollectorSaleResult.fail("Collector sale failed safely.");
-                }
-
                 for (SaleEntry sale : sellable) entries.remove(sale.stored());
                 save();
                 updateHologram(data);
 
-                Bukkit.getPluginManager().callEvent(new CollectorSellEvent(
-                        data.id(), actor.getUniqueId(), data.location(), Material.AIR, Math.toIntExact(units), payout));
+                for (SaleEntry sale : sellable) {
+                    int amount = Math.toIntExact(sale.stored().count());
+                    double linePayout = sale.price().unitPrice() * amount * multiplier;
+                    try {
+                        shopBridge.recordSell(sale.price().rawItem(), amount, linePayout);
+                    } catch (ReflectiveOperationException | RuntimeException ex) {
+                        getLogger().warning("Collector sale stats hook failed after successful sale: " + ex.getMessage());
+                    }
+                    Bukkit.getPluginManager().callEvent(new CollectorSellEvent(
+                            data.id(), actor.getUniqueId(), data.location(),
+                            sale.stored().template().getType(), amount, linePayout));
+                }
+
                 core.audit().record("MiraCollectors", "COLLECTOR_SELL_WAND_SALE",
                         actor.getUniqueId(), actor.getName(), data.id().toString(), "Collector sold with sell wand",
                         Map.of("units", Long.toString(units), "payout", Double.toString(payout),
