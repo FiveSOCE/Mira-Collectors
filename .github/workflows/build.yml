@@ -2,7 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -22,24 +24,36 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10'
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^version = "\([^"]*\)"/\1/p' build.gradle.kts | head -n1)
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Build
         run: gradle clean build --stacktrace
+
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: MiraCollectors-0.1.4
-          path: build/libs/MiraCollectors-0.1.4.jar
+          name: MiraCollectors-${{ steps.version.outputs.version }}
+          path: build/libs/MiraCollectors-${{ steps.version.outputs.version }}.jar
           if-no-files-found: error
 
-      - name: Publish v0.1.4 release if missing
-        if: github.event_name != 'pull_request'
+      - name: Publish release branch
+        if: success() && startsWith(github.ref, 'refs/heads/release/')
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if ! gh release view v0.1.4 >/dev/null 2>&1; then
-            gh release create v0.1.4 \
-              build/libs/MiraCollectors-0.1.4.jar \
+          TAG="v$VERSION"
+          JAR="build/libs/MiraCollectors-$VERSION.jar"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
-              --title "MiraCollectors v0.1.4" \
-              --notes "Changes Collector sale audio from owner-only to an environmental two-chunk (32 block) nearby audience while preserving the per-player anti-spam cooldown in MiraCosmetics."
+              --title "MiraCollectors $TAG" \
+              --notes "Rebuilds collectors around exact single-chunk coverage and backend virtual storage. Capacity upgrades are 1,728 / 10k / 50k / 100k / 500k items at levels 1-5, each upgrade costs $100k with faction-bank-first charging, placement is restricted to the player's own faction claims, visual item stacks cap at normal stack size while backend counts stay exact, upgrades persist on the returned collector item, breaking clears stored contents and removes the hologram, and collectors display live level/capacity holograms with a FULL state."
           fi
