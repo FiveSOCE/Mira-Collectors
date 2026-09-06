@@ -788,8 +788,18 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
     public interface CollectorsApi {
         boolean isCollector(Location location);
         Optional<CollectorSnapshot> collectorAt(Location location);
+        CollectorSaleResult sellAll(Player actor, Location location, double multiplier);
         int count();
         ItemStack create(int level, Mode mode);
+    }
+
+    public record CollectorSaleResult(boolean success, long units, double payout, String message) {
+        public static CollectorSaleResult fail(String message) {
+            return new CollectorSaleResult(false, 0L, 0D, message);
+        }
+        public static CollectorSaleResult success(long units, double payout) {
+            return new CollectorSaleResult(true, units, payout, "");
+        }
     }
 
     private final class CollectorsApiImpl implements CollectorsApi {
@@ -798,6 +808,77 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
             CollectorData data = location == null ? null : collectors.get(key(location));
             return data == null ? Optional.empty() : Optional.of(data.snapshot());
         }
+        @Override
+        public CollectorSaleResult sellAll(Player actor, Location location, double multiplier) {
+            if (actor == null || location == null) return CollectorSaleResult.fail("Invalid collector sale.");
+            if (!Double.isFinite(multiplier) || multiplier <= 0D) return CollectorSaleResult.fail("Invalid sell wand multiplier.");
+
+            CollectorData data = collectors.get(key(location));
+            if (data == null) return CollectorSaleResult.fail("That is not a MiraCollector.");
+            if (!sameFaction(actor, data)) return CollectorSaleResult.fail("That collector does not belong to your faction.");
+            if (!sellModeAvailable()) return CollectorSaleResult.fail("MiraShop or Vault is currently unavailable.");
+
+            List<StoredEntry> entries = storage.get(data.id());
+            if (entries == null || entries.isEmpty()) return CollectorSaleResult.fail("That collector is empty.");
+
+            try {
+                ShopSnapshot snapshot = shopBridge.snapshot();
+                List<SaleEntry> sellable = new ArrayList<>();
+                long units = 0L;
+                double base = 0D;
+
+                for (StoredEntry stored : entries) {
+                    if (stored.count() <= 0) continue;
+                    PriceEntry price = snapshot.find(stored.template());
+                    if (price == null || !Double.isFinite(price.unitPrice()) || price.unitPrice() < 0D) continue;
+
+                    double line = price.unitPrice() * stored.count();
+                    if (!Double.isFinite(line) || line < 0D) return CollectorSaleResult.fail("Collector sale total was invalid.");
+                    base += line;
+                    if (!Double.isFinite(base) || base < 0D) return CollectorSaleResult.fail("Collector sale total was invalid.");
+                    units += stored.count();
+                    if (units < 0L) return CollectorSaleResult.fail("Collector sale count overflowed.");
+                    sellable.add(new SaleEntry(stored, price));
+                }
+
+                if (sellable.isEmpty() || units <= 0L) {
+                    return CollectorSaleResult.fail("That collector has no MiraShop-sellable items.");
+                }
+
+                double payout = base * multiplier;
+                if (!Double.isFinite(payout) || payout < 0D) return CollectorSaleResult.fail("Collector payout was invalid.");
+                if (!economy.depositPlayer(actor, payout).transactionSuccess()) {
+                    return CollectorSaleResult.fail("The economy rejected the collector payout.");
+                }
+
+                try {
+                    for (SaleEntry sale : sellable) {
+                        int amount = Math.toIntExact(sale.stored().count());
+                        shopBridge.recordSell(sale.price().rawItem(), amount, sale.price().unitPrice() * amount * multiplier);
+                    }
+                } catch (RuntimeException | ReflectiveOperationException ex) {
+                    economy.withdrawPlayer(actor, payout);
+                    getLogger().warning("Collector sell stats failed; payout rolled back: " + ex.getMessage());
+                    return CollectorSaleResult.fail("Collector sale failed safely.");
+                }
+
+                for (SaleEntry sale : sellable) entries.remove(sale.stored());
+                save();
+                updateHologram(data);
+
+                Bukkit.getPluginManager().callEvent(new CollectorSellEvent(
+                        data.id(), actor.getUniqueId(), data.location(), Material.AIR, Math.toIntExact(units), payout));
+                core.audit().record("MiraCollectors", "COLLECTOR_SELL_WAND_SALE",
+                        actor.getUniqueId(), actor.getName(), data.id().toString(), "Collector sold with sell wand",
+                        Map.of("units", Long.toString(units), "payout", Double.toString(payout),
+                                "multiplier", Double.toString(multiplier)));
+                return CollectorSaleResult.success(units, payout);
+            } catch (ReflectiveOperationException | RuntimeException ex) {
+                getLogger().warning("Collector sell-all failed: " + ex.getMessage());
+                return CollectorSaleResult.fail("Could not price collector contents through MiraShop.");
+            }
+        }
+
         @Override public int count() { return collectors.size(); }
         @Override public ItemStack create(int level, Mode mode) {
             return createCollectorItem(level, mode, UUID.randomUUID(), Set.of());
@@ -821,6 +902,8 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         long count() { return count; }
         void count(long count) { this.count = Math.max(0L, count); }
     }
+
+    private record SaleEntry(StoredEntry stored, PriceEntry price) { }
 
     private record PriceEntry(Object rawItem, Material material, boolean custom, ItemStack template, double unitPrice) { }
 
