@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraCollectors $TAG" \
-              --notes "Rebuilds collectors around exact single-chunk coverage and backend virtual storage. Capacity upgrades are 1,728 / 10k / 50k / 100k / 500k items at levels 1-5, each upgrade costs $100k with faction-bank-first charging, placement is restricted to the player's own faction claims, visual item stacks cap at normal stack size while backend counts stay exact, upgrades persist on the returned collector item, breaking clears stored contents and removes the hologram, and collectors display live level/capacity holograms with a FULL state."
+              --notes "Adds transactional sell-all support for sell wands. MiraCollectors can now price full backend virtual-storage counts through MiraShop, apply a wand multiplier, pay the player once, remove only successfully priced stored entries, update holograms, and report per-item sale events/statistics."
           fi
