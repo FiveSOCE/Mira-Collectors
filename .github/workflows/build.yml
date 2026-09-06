@@ -55,5 +55,5 @@ jobs:
             gh release create "$TAG" "$JAR" \
               --target "${{ github.sha }}" \
               --title "MiraCollectors $TAG" \
-              --notes "Collector sell-all results now return a human-readable item label so SellWands can report messages like Sold 64 Diamonds for $19,200 when exactly one item type is sold, while mixed sales fall back to Items."
+              --notes "Restricts collectors to genuine non-player mob drops only. Player-dropped items, player death drops, block drops, crate/kit loot, armor, tools and other manually dropped items are ignored even inside the collector chunk."
           fi
