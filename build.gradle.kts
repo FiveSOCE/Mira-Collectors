@@ -4,7 +4,7 @@ import java.security.MessageDigest
 plugins { java }
 
 group = "gg.mira"
-version = "0.2.3"
+version = "0.2.4"
 
 repositories {
     mavenCentral()
@@ -54,19 +54,23 @@ val downloadMiraFactions by tasks.registering {
     }
 }
 
+val paperApiVersion = providers.gradleProperty("paperApiVersion").orElse("1.21.11-R0.1-SNAPSHOT")
+val compileJavaVersion = providers.gradleProperty("compileJavaVersion").map(String::toInt).orElse(21)
+val bytecodeJavaVersion = providers.gradleProperty("bytecodeJavaVersion").map(String::toInt).orElse(21)
+
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:${paperApiVersion.get()}")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") { exclude(group = "org.bukkit", module = "bukkit") }
     compileOnly(files(miraCoreJar))
     compileOnly(files(miraFactionsJar))
 }
 
-java { toolchain.languageVersion.set(JavaLanguageVersion.of(21)) }
+java { toolchain.languageVersion.set(JavaLanguageVersion.of(compileJavaVersion.get())) }
 
 tasks.withType<JavaCompile>().configureEach {
     dependsOn(downloadMiraCore, downloadMiraFactions)
     options.encoding = "UTF-8"
-    options.release.set(21)
+    options.release.set(bytecodeJavaVersion.get())
 }
 
 tasks.jar { archiveFileName.set("MiraCollectors-${project.version}.jar") }
