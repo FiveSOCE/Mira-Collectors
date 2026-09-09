@@ -1,3 +1,13 @@
+# MiraCollectors
+
+## Download
+
+**Latest compatibility release: v0.2.4**
+
+[**Download MiraCollectors-0.2.4.jar**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.2.4/MiraCollectors-0.2.4.jar)
+
+[View all releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
+
 ## v0.2.0 chunk collectors
 
 Collectors now cover exactly the chunk they are placed in. Storage is virtual/backend-counted with capacities of 1,728, 10,000, 50,000, 100,000 and 500,000 items for levels 1-5. Each upgrade costs $100,000, charged from the faction bank first when it can cover the full amount and otherwise from the upgrading player. Collectors may only be placed in the player's own faction claim, retain their level when broken/re-placed, clear stored contents on break, and show a live TextDisplay hologram with level and capacity/FULL status.
@@ -5,12 +15,6 @@ Collectors now cover exactly the chunk they are placed in. Storage is virtual/ba
 # MiraCollectors
 
 MiraCollectors provides protected persistent collection barrels for the Mira Paper server suite. Collectors gather nearby dropped items into physical storage or automatically sell safe eligible drops using current MiraShop pricing.
-
-## Download
-
-[**Download MiraCollectors v0.2.0**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.2.4/MiraCollectors-0.2.4.jar)
-
-[View All Releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
 
 ## Requirements / Dependencies
 
