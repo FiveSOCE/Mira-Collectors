@@ -8,7 +8,7 @@ MiraCollectors provides protected persistent collection barrels for the Mira Pap
 
 ## Download
 
-[**Download MiraCollectors v0.2.0**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.2.0/MiraCollectors-0.2.0.jar)
+[**Download MiraCollectors v0.2.0**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.2.4/MiraCollectors-0.2.4.jar)
 
 [View All Releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
 
