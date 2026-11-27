@@ -4,7 +4,7 @@ import java.security.MessageDigest
 plugins { java }
 
 group = "gg.mira"
-version = "0.2.4"
+version = "0.2.4-1.18.2"
 
 repositories {
     mavenCentral()
@@ -12,13 +12,13 @@ repositories {
     maven("https://jitpack.io")
 }
 
-val miraCoreVersion = "0.5.2"
-val miraCoreSha256 = "857611b2951a7a026ac7a9ec734e37f7764e33d84f05dec97a6736861d3af170"
-val miraCoreJar = layout.projectDirectory.file("libs/MiraCore-$miraCoreVersion.jar").asFile
+val miraCoreVersion = "0.6.1-1.18.2"
+val miraCoreSha256 = "8abf9f26ea889ffe1648c6f35fcb7b20eef4decd870e8385fb1603120f363b95"
+val miraCoreJar = layout.projectDirectory.file("libs/MiraCore_1.18.2.jar").asFile
 
-val miraFactionsVersion = "0.2.21"
-val miraFactionsSha256 = "c640c8b868b7dcdafb2174614669d8e16deba8d0789e3d6862f8bd3c45c1114e"
-val miraFactionsJar = layout.projectDirectory.file("libs/MiraFactions-$miraFactionsVersion.jar").asFile
+val miraFactionsVersion = "0.2.33-1.18.2"
+val miraFactionsSha256 = "150ffe9a488021d04177bad37fa27076203bcce490d024b05af06f4bb1728a81"
+val miraFactionsJar = layout.projectDirectory.file("libs/MiraFactions_1.18.2.jar").asFile
 
 fun sha256(file: File): String {
     val digest = MessageDigest.getInstance("SHA-256")
@@ -37,7 +37,7 @@ fun downloadVerified(url: String, target: File, expected: String) {
 val downloadMiraCore by tasks.registering {
     doLast {
         downloadVerified(
-            "https://github.com/FiveSOCE/Mira-core/releases/download/v$miraCoreVersion/MiraCore-$miraCoreVersion.jar",
+            "https://github.com/FiveSOCE/Mira-core/releases/download/dev-1.18.2/MiraCore_1.18.2.jar",
             miraCoreJar,
             miraCoreSha256
         )
@@ -47,16 +47,16 @@ val downloadMiraCore by tasks.registering {
 val downloadMiraFactions by tasks.registering {
     doLast {
         downloadVerified(
-            "https://github.com/FiveSOCE/Mira-Factions/releases/download/v$miraFactionsVersion/MiraFactions-$miraFactionsVersion.jar",
+            "https://github.com/FiveSOCE/Mira-Factions/releases/download/dev-1.18.2/MiraFactions_1.18.2.jar",
             miraFactionsJar,
             miraFactionsSha256
         )
     }
 }
 
-val paperApiVersion = providers.gradleProperty("paperApiVersion").orElse("1.21.11-R0.1-SNAPSHOT")
-val compileJavaVersion = providers.gradleProperty("compileJavaVersion").map(String::toInt).orElse(21)
-val bytecodeJavaVersion = providers.gradleProperty("bytecodeJavaVersion").map(String::toInt).orElse(21)
+val paperApiVersion = providers.gradleProperty("paperApiVersion").orElse("1.18.2-R0.1-SNAPSHOT")
+val compileJavaVersion = providers.gradleProperty("compileJavaVersion").map(String::toInt).orElse(17)
+val bytecodeJavaVersion = providers.gradleProperty("bytecodeJavaVersion").map(String::toInt).orElse(17)
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:${paperApiVersion.get()}")
@@ -73,7 +73,7 @@ tasks.withType<JavaCompile>().configureEach {
     options.release.set(bytecodeJavaVersion.get())
 }
 
-tasks.jar { archiveFileName.set("MiraCollectors-${project.version}.jar") }
+tasks.jar { archiveFileName.set("MiraCollectors_1.18.2.jar") }
 
 tasks.processResources {
     filesMatching("plugin.yml") { expand("version" to project.version) }
