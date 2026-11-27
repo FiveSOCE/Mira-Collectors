@@ -4,10 +4,10 @@
 
 | Paper server | Java | Final JAR | Download |
 | --- | --- | --- | --- |
-| **1.18.2** | Java 17 | `MiraCollectors_1.18.2.jar` | [Legacy release](https://github.com/FiveSOCE/Mira-Collectors/releases/tag/dev-1.18.2) |
-| **1.21.11–26.2** | Java 21 baseline; 26.2 server may require Java 25 | `MiraCollectors_1.21.11-26.2.jar` | [Modern release](https://github.com/FiveSOCE/Mira-Collectors/releases/tag/compat-modern-1.21.11-26.2) |
+| **1.18.2** | Java 17 | `MiraCollectors_1.18.2.jar` | [Download legacy JAR](https://github.com/FiveSOCE/Mira-Collectors/releases/download/dev-1.18.2/MiraCollectors_1.18.2.jar) |
+| **1.21.11–26.2** | Java 21 baseline; 26.2 server may require Java 25 | `MiraCollectors_1.21.11-26.2.jar` | [Download modern JAR](https://github.com/FiveSOCE/Mira-Collectors/releases/download/compat-modern-1.21.11-26.2/MiraCollectors_1.21.11-26.2.jar) |
 
-Download links become valid when CI publishes each named JAR. **Runtime validation and 1.19–1.21.10 compatibility tests are outstanding.** Install only one Collector JAR per server.
+Both JARs are published GitHub release assets following successful compilation. **Runtime validation and 1.19–1.21.10 compatibility tests are outstanding.** Install only one Collector JAR per server.
 
 [Legacy source](https://github.com/FiveSOCE/Mira-Collectors/tree/compat/1.18.2) · [Modern source](https://github.com/FiveSOCE/Mira-Collectors) · [All releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
 
