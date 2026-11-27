@@ -1,12 +1,41 @@
 # MiraCollectors
 
-## Download
+## Downloads by Minecraft version
 
-**Latest compatibility release: v0.2.4**
+| Paper server | Java | Final JAR | Download |
+| --- | --- | --- | --- |
+| **1.18.2** | Java 17 | `MiraCollectors_1.18.2.jar` | [Legacy release](https://github.com/FiveSOCE/Mira-Collectors/releases/tag/dev-1.18.2) |
+| **1.21.11–26.2** | Java 21 baseline; 26.2 server may require Java 25 | `MiraCollectors_1.21.11-26.2.jar` | [Modern release](https://github.com/FiveSOCE/Mira-Collectors/releases/tag/compat-modern-1.21.11-26.2) |
 
-[**Download MiraCollectors-0.2.4.jar**](https://github.com/FiveSOCE/Mira-Collectors/releases/download/v0.2.4/MiraCollectors-0.2.4.jar)
+Download links become valid when CI publishes each named JAR. **Runtime validation and 1.19–1.21.10 compatibility tests are outstanding.** Install only one Collector JAR per server.
 
-[View all releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
+[Legacy source](https://github.com/FiveSOCE/Mira-Collectors/tree/compat/1.18.2) · [Modern source](https://github.com/FiveSOCE/Mira-Collectors) · [All releases](https://github.com/FiveSOCE/Mira-Collectors/releases)
+
+## What MiraCollectors does
+
+MiraCollectors provides faction-claimed chunk collectors. An administered collector item can be placed only in an eligible faction claim, receives a persistent identifier, and automatically gathers eligible dropped items within its chunk. Upgradable virtual storage capacity, material filters, protected access and configurable automatic SELL mode support Factions grinder farms. It integrates with faction banks, the Vault economy, MiraShop pricing and the MiraCore services API.
+
+## Dependencies
+
+- **Required:** Paper/Java for the chosen build, matching **MiraCore**, matching **MiraFactions**, **Vault** and a Vault-compatible economy provider.
+- **Optional:** MiraShop for automatic SELL valuation; without MiraShop, STORE remains available. MiraCosmetics adds optional sale audio.
+- **Compatibility:** Make sure all hard-dependency JARs target the same Minecraft version. On 1.18.2 use `MiraCore_1.18.2.jar` and `MiraFactions_1.18.2.jar`.
+- Back up `plugins/MiraCollectors/` before switching JARs.
+
+## Commands and permissions
+
+| Command | Permission | Effect |
+| --- | --- | --- |
+| `/collector info` | `miracollectors.use` | Inspect the targeted collector |
+| `/collector mode <store|sell>` | `miracollectors.use` | Change collection mode |
+| `/collector upgrade` | `miracollectors.use` | Upgrade collector capacity |
+| `/collector filter` | `miracollectors.use` | Manage material whitelist |
+| `/collector give <player>` | `miracollectors.admin` | Issue a collector item |
+
+| Permission | Default | Effect |
+| --- | --- | --- |
+| `miracollectors.use` | Everyone | Player collector commands |
+| `miracollectors.admin` | OP | Issue/administer collectors |
 
 ## v0.2.0 chunk collectors
 
