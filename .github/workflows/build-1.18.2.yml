@@ -1,0 +1,43 @@
+name: MiraCollectors Paper 1.18.2
+on:
+  push:
+    branches: ['compat/1.18.2']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  legacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10'
+      - name: Compile and test
+        run: gradle clean test build --no-daemon --stacktrace
+      - name: Validate legacy plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR=build/libs/MiraCollectors_1.18.2.jar
+          test -s "$JAR"
+          jar tf "$JAR" | grep -Fx plugin.yml
+          jar tf "$JAR" | grep -Fx gg/mira/collectors/MiraCollectorsPlugin.class
+          javap -verbose -classpath "$JAR" gg.mira.collectors.MiraCollectorsPlugin | grep -F 'major version: 61'
+          unzip -p "$JAR" plugin.yml | grep -F "api-version: '1.18'"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiraCollectors_1.18.2
+          path: build/libs/MiraCollectors_1.18.2.jar
+          if-no-files-found: error
+      - name: Publish legacy development JAR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view dev-1.18.2 >/dev/null 2>&1 || gh release create dev-1.18.2 --prerelease --title 'MiraCollectors Paper 1.18.2' --notes 'Requires MiraCore, MiraFactions, Vault and compatible economy. Paper 1.18.2 Java 17. In-game integration pending.' --target "$GITHUB_SHA"
+          gh release upload dev-1.18.2 build/libs/MiraCollectors_1.18.2.jar --clobber
