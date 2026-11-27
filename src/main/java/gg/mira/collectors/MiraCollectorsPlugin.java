@@ -19,7 +19,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.ArmorStand;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -110,7 +111,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         getServer().getScheduler().runTaskTimer(this, this::tick, 20L, interval);
         getServer().getScheduler().runTask(this, this::reconcileHolograms);
 
-        getLogger().info("MiraCollectors v" + getPluginMeta().getVersion()
+        getLogger().info("MiraCollectors v" + getDescription().getVersion()
                 + " enabled with " + collectors.size() + " persisted collector(s).");
     }
 
@@ -568,7 +569,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
 
     private void reconcileHolograms() {
         for (World world : Bukkit.getWorlds()) {
-            for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
+            for (ArmorStand display : world.getEntitiesByClass(ArmorStand.class)) {
                 String id = display.getPersistentDataContainer().get(hologramKey, PersistentDataType.STRING);
                 if (id == null) continue;
                 UUID uuid = parseUuid(id);
@@ -585,17 +586,19 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         World world = base.getWorld();
         if (world == null || !world.isChunkLoaded(base.getBlockX() >> 4, base.getBlockZ() >> 4)) return;
 
-        TextDisplay found = null;
-        for (TextDisplay display : world.getNearbyEntitiesByType(TextDisplay.class, base.clone().add(0.5, 1.8, 0.5), 2.0)) {
+        ArmorStand found = null;
+        for (ArmorStand display : world.getNearbyEntitiesByType(ArmorStand.class, base.clone().add(0.5, 1.8, 0.5), 2.0)) {
             String raw = display.getPersistentDataContainer().get(hologramKey, PersistentDataType.STRING);
             if (data.id().toString().equals(raw)) { found = display; break; }
         }
         if (found == null) {
-            found = world.spawn(base.clone().add(0.5, 1.8, 0.5), TextDisplay.class, display -> {
+            found = world.spawn(base.clone().add(0.5, 1.8, 0.5), ArmorStand.class, display -> {
                 display.getPersistentDataContainer().set(hologramKey, PersistentDataType.STRING, data.id().toString());
-                display.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
-                display.setShadowed(true);
-                display.setSeeThrough(false);
+                display.setInvisible(true);
+                display.setMarker(true);
+                display.setSmall(true);
+                display.setGravity(false);
+                display.setCustomNameVisible(true);
             });
         }
 
@@ -605,12 +608,12 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         Component status = stored >= capacity(data.level())
                 ? Component.text("FULL", NamedTextColor.DARK_RED).decorate(TextDecoration.BOLD)
                 : Component.text(formatCount(stored) + "/" + formatCount(capacity(data.level())) + " Items", NamedTextColor.GRAY);
-        found.text(title.append(Component.newline()).append(status));
+        found.setCustomName(LegacyComponentSerializer.legacySection().serialize(title.append(Component.newline()).append(status)));
     }
 
     private void removeHologram(UUID id, Location around) {
         if (id == null || around == null || around.getWorld() == null) return;
-        for (TextDisplay display : around.getWorld().getNearbyEntitiesByType(TextDisplay.class,
+        for (ArmorStand display : around.getWorld().getNearbyEntitiesByType(ArmorStand.class,
                 around.clone().add(0.5, 1.8, 0.5), 3.0)) {
             String raw = display.getPersistentDataContainer().get(hologramKey, PersistentDataType.STRING);
             if (id.toString().equals(raw)) display.remove();
@@ -621,7 +624,7 @@ public final class MiraCollectorsPlugin extends JavaPlugin implements Listener {
         int safeLevel = clampLevel(level);
         ItemStack item = new ItemStack(Material.BARREL);
         ItemMeta meta = item.getItemMeta();
-        meta.customName(Component.text("Level " + safeLevel + " Collector", NamedTextColor.LIGHT_PURPLE)
+        meta.displayName(Component.text("Level " + safeLevel + " Collector", NamedTextColor.LIGHT_PURPLE)
                 .decoration(TextDecoration.ITALIC, false));
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(itemKey, PersistentDataType.BYTE, (byte)1);
