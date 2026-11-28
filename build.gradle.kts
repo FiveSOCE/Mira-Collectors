@@ -13,7 +13,7 @@ repositories {
 }
 
 val miraCoreVersion = "0.6.1-1.18.2"
-val miraCoreSha256 = "8abf9f26ea889ffe1648c6f35fcb7b20eef4decd870e8385fb1603120f363b95"
+val miraCoreSha256 = "91a1aacad3f1249877afdd5381d83998c33251bf08a30711f2a15c580feaee39"
 val miraCoreJar = layout.projectDirectory.file("libs/MiraCore_1.18.2.jar").asFile
 
 val miraFactionsVersion = "0.2.33-1.18.2"
