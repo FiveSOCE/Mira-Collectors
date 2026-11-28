@@ -17,7 +17,7 @@ val miraCoreSha256 = "91a1aacad3f1249877afdd5381d83998c33251bf08a30711f2a15c580f
 val miraCoreJar = layout.projectDirectory.file("libs/MiraCore_1.18.2.jar").asFile
 
 val miraFactionsVersion = "0.2.33-1.18.2"
-val miraFactionsSha256 = "150ffe9a488021d04177bad37fa27076203bcce490d024b05af06f4bb1728a81"
+val miraFactionsSha256 = "f51f8af54dc2a8d18b9f6e7e1bf3a172758639db5d94bc0c010a9974d16569f9"
 val miraFactionsJar = layout.projectDirectory.file("libs/MiraFactions_1.18.2.jar").asFile
 
 fun sha256(file: File): String {
